@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>HUB Monitoramento</title>
+<style>
+  :root { --bg:#0b1220; --panel:#131c2e; --line:#24314a; --text:#e6edf7; --muted:#8b9bb4;
+          --ok:#22c55e; --fail:#ef4444; --unknown:#64748b; --accent:#38bdf8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:"Segoe UI",-apple-system,Roboto,Arial,sans-serif; }
+  header { padding:18px 22px; border-bottom:1px solid var(--line); }
+  h1 { font-size:19px; margin:0 0 4px; }
+  .muted { color:var(--muted); font-size:12.5px; }
+  main { padding:18px 22px 80px; display:grid; gap:14px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .card .label { font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+  .card .state { font-size:20px; font-weight:700; margin:6px 0 2px; }
+  .ok { color:var(--ok); } .fail { color:var(--fail); } .unknown { color:var(--unknown); }
+  .detail { font-size:12.5px; color:var(--muted); }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:0 0 10px; }
+  ul.occ { list-style:none; margin:0; padding:0; }
+  ul.occ li { padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; display:flex; gap:10px; flex-wrap:wrap; }
+  ul.occ li:last-child { border-bottom:none; }
+  .badge { font-size:11px; padding:1px 7px; border-radius:999px; background:rgba(56,189,248,.16); color:var(--accent); }
+  .badge.closed { background:rgba(34,197,94,.16); color:var(--ok); }
+  .banner { background:rgba(239,68,68,.14); border:1px solid rgba(239,68,68,.4); color:#fecaca;
+            padding:10px 14px; border-radius:10px; font-size:13px; }
+  footer { position:fixed; bottom:0; left:0; right:0; padding:12px 22px; background:#0d1526;
+           border-top:1px solid var(--line); display:flex; gap:10px; align-items:center; }
+  button { background:#1a2438; color:var(--text); border:1px solid var(--line); border-radius:8px;
+           padding:8px 14px; font-size:13px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  .spacer { flex:1; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">HUB Monitoramento</h1>
+  <div class="muted" id="subtitle">carregando...</div>
+</header>
+<main>
+  <div id="banner" class="banner" style="display:none"></div>
+  <section class="cards" id="cards"></section>
+  <section class="panel" id="machinesPanel" style="display:none">
+    <h2>Computadores</h2>
+    <ul class="occ" id="machines"></ul>
+  </section>
+  <section class="panel">
+    <h2>Últimas ocorrências</h2>
+    <ul class="occ" id="occurrences"><li class="muted">Nenhuma ocorrência registrada.</li></ul>
+  </section>
+</main>
+<footer>
+  <button id="refresh">Atualizar</button>
+  <button id="dashboard">Abrir painel</button>
+  <button id="import">Importar conexão</button>
+  <div class="spacer"></div>
+  <span class="muted" id="actionStatus"></span>
+  <button id="hide">Minimizar para a bandeja</button>
+</footer>
+<script>
+var LABEL = { ok: "Normal", fail: "Falha", unknown: "Sem dados" };
+
+function escapeText(value) {
+  return String(value === undefined || value === null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function render(data) {
+  document.getElementById("title").textContent = data.store || "HUB Monitoramento";
+  var subtitle = data.mode === "server" ? "Servidor da loja" : "Computador monitorado";
+  if (data.last_check) {
+    subtitle += " - última verificação às " +
+      new Date(data.last_check).toLocaleTimeString("pt-BR");
+  }
+  subtitle += " - atualizado em " + new Date(data.generated_at).toLocaleString("pt-BR");
+  document.getElementById("subtitle").textContent = subtitle;
+  var banner = document.getElementById("banner");
+  banner.style.borderColor = "";
+  banner.style.color = "";
+  if (data.error) {
+    banner.style.display = "block";
+    banner.style.background = "rgba(239,68,68,.14)";
+    banner.style.borderColor = "rgba(239,68,68,.4)";
+    banner.style.color = "#fecaca";
+    banner.textContent = "Sem comunicação com o serviço local: " + data.error;
+  } else if (data.needs_connection) {
+    banner.style.display = "block";
+    banner.style.background = "rgba(245,158,11,.14)";
+    banner.style.borderColor = "rgba(245,158,11,.4)";
+    banner.style.color = "#fde68a";
+    banner.textContent =
+      "Esta máquina ainda não está conectada à loja. Clique em Importar conexão e escolha o arquivo .hubconn do servidor.";
+  } else {
+    banner.style.display = "none";
+    banner.style.background = "";
+  }
+  var cards = data.items.map(function (item) {
+    return '<div class="card"><div class="label">' + escapeText(item.label) + '</div>' +
+      '<div class="state ' + item.state + '">' + LABEL[item.state] + '</div>' +
+      '<div class="detail">' + escapeText(item.detail) + '</div></div>';
+  }).join("");
+  document.getElementById("cards").innerHTML = cards;
+
+  var machines = data.machines || [];
+  var machinesPanel = document.getElementById("machinesPanel");
+  machinesPanel.style.display = machines.length ? "" : "none";
+  if (machines.length) {
+    document.getElementById("machines").innerHTML = machines.map(function (item) {
+      var seen = item.last_seen
+        ? new Date(item.last_seen).toLocaleString("pt-BR")
+        : "nunca comunicou";
+      return '<li><strong>' + escapeText(item.name) + '</strong>' +
+        '<span class="badge ' + (item.state === "ok" ? "closed" : "") + '">' +
+        LABEL[item.state] + '</span>' +
+        '<span class="muted">última comunicação: ' + escapeText(seen) + '</span></li>' +
+        (item.detail ? '<li class="muted">' + escapeText(item.detail) + '</li>' : '');
+    }).join("");
+  }
+
+  var occ = data.occurrences || [];
+  var list = document.getElementById("occurrences");
+  if (!occ.length) {
+    list.innerHTML = '<li class="muted">Nenhuma ocorrência registrada.</li>';
+  } else {
+    list.innerHTML = occ.map(function (item) {
+      var closed = item.recovered_at ? "closed" : "";
+      var when = item.started_at ? new Date(item.started_at).toLocaleString("pt-BR") : "";
+      var duration = item.duration ? Math.round(item.duration) + " s" : "";
+      return '<li><span class="badge ' + closed + '">' +
+        (item.recovered_at ? "encerrada" : "em andamento") + '</span>' +
+        '<strong>' + escapeText(item.title) + '</strong>' +
+        '<span class="muted">' + escapeText(when) + '</span>' +
+        '<span class="muted">' + escapeText(item.machines) + '</span>' +
+        '<span class="muted">' + escapeText(duration) + '</span></li>';
+    }).join("");
+  }
+}
+
+async function refresh() {
+  if (!window.pywebview || !window.pywebview.api) return;
+  try {
+    render(await window.pywebview.api.get_status());
+  } catch (err) {
+    document.getElementById("banner").style.display = "block";
+    document.getElementById("banner").textContent = "Falha ao consultar o serviço: " + err;
+  }
+}
+
+function report(result) {
+  var box = document.getElementById("actionStatus");
+  if (!result) { return; }
+  box.textContent = result.detail || "";
+  box.style.color = result.ok ? "#22c55e" : "#ef4444";
+}
+
+document.getElementById("refresh").addEventListener("click", refresh);
+document.getElementById("dashboard").addEventListener("click", async function () {
+  if (!window.pywebview) { return; }
+  report(await window.pywebview.api.open_dashboard());
+});
+document.getElementById("import").addEventListener("click", async function () {
+  if (!window.pywebview) { return; }
+  var box = document.getElementById("actionStatus");
+  box.textContent = "Selecione o arquivo .hubconn...";
+  box.style.color = "#8b9bb4";
+  var result = await window.pywebview.api.import_connection();
+  report(result);
+  if (result && result.ok) { refresh(); }
+});
+document.getElementById("hide").addEventListener("click", function () {
+  if (window.pywebview) window.pywebview.api.close_window();
+});
+window.addEventListener("pywebviewready", refresh);
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+# Segredos e dados locais
+.env
+.env.*
+*.env
+!.env.example
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.bak
+*.backup
+logs/
+data/
+backups/
+backup/
+server/certs/
+*.key
+*.p12
+*.pfx
+*.pem
+!certs/icp-brasil-roots.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python/
+.pwsh/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Empacotamento Windows
+build/
+dist/
+packaging/vendor/
+
+# Estado local do Obsidian e metadados da máquina
+.DS_Store
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Pacotes e logs locais
+*.zip
+*.tar.gz
+*.log
+
+# Materiais internos do piloto anterior e comerciais, mantidos localmente
+/docs/
+/install/windows/
+/OFERTA_HUB_MONITOR.md
+/PLANO_ACAO_WINDOWS.md
+/plano_historico.md
+/99 - Arquivo/

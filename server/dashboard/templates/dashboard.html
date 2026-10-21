@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<style>
+  :root {
+    --bg: #0b1220; --panel: #131c2e; --panel2: #1a2438; --line: #24314a;
+    --text: #e6edf7; --muted: #8b9bb4; --ok: #22c55e; --fail: #ef4444;
+    --warn: #f59e0b; --unknown: #64748b; --accent: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+  header { padding: 18px 24px; border-bottom: 1px solid var(--line);
+           display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .5px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  main { padding: 20px 24px 60px; display: grid; gap: 18px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px;
+              color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; font-weight: 600; }
+  th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .dot { font-size: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .card { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .card .name { font-weight: 700; margin-bottom: 6px; }
+  .card .row { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 0; color: var(--muted); }
+  .card .row b { color: var(--text); font-weight: 600; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .pill.up { background: rgba(34,197,94,.16); color: var(--ok); }
+  .pill.down { background: rgba(239,68,68,.16); color: var(--fail); }
+  .pill.unknown { background: rgba(100,116,139,.2); color: var(--muted); }
+  .incident { border-left: 3px solid var(--warn); padding-left: 12px; }
+  .incident.critical { border-color: var(--fail); }
+  .incident h3 { margin: 0 0 6px; font-size: 15px; }
+  pre { white-space: pre-wrap; margin: 6px 0 0; font-size: 13px; color: var(--text); font-family: inherit; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  select, button { background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+                   border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+  .events { max-height: 280px; overflow: auto; font-size: 13px; }
+  .events div { padding: 5px 0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; }
+  .events .t { color: var(--muted); white-space: nowrap; }
+  .crit { color: var(--fail); } .warn { color: var(--warn); } .info { color: var(--accent); }
+  footer { padding: 0 24px 24px; }
+  .settings-link { color: var(--text); text-decoration: none; border: 1px solid var(--line);
+                  border-radius: 8px; padding: 7px 11px; background: var(--panel2); font-size: 13px; }
+  .settings-link:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>{{ title }}</h1>
+    <div class="muted">{{ store_name }} &middot; atualiza a cada 5 s</div>
+  </div>
+  <div class="toolbar"><a class="settings-link" href="/configuracao">Configurações</a><div class="muted" id="clock">--</div></div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Saúde dos caixas</h2>
+    <table id="matrix">
+      <thead>
+        <tr><th>Caixa</th><th>Rede local</th><th>Servidor</th><th>Internet</th><th>SEFAZ</th><th>Leitura do monitor</th></tr>
+      </thead>
+      <tbody><tr><td colspan="6" class="muted">Carregando...</td></tr></tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Links de internet</h2>
+    <div class="cards" id="wans"><div class="muted">Sem dados da MikroTik.</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Ocorrências recentes</h2>
+    <div id="incidents"><div class="muted">Nenhum incidente registrado.</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Disponibilidade e latência</h2>
+    <div class="toolbar">
+      <label class="muted">Caixa
+        <select id="machineSelect"></select>
+      </label>
+      <label class="muted">Janela
+        <select id="hoursSelect">
+          <option value="1">1 h</option>
+          <option value="3" selected>3 h</option>
+          <option value="6">6 h</option>
+          <option value="12">12 h</option>
+          <option value="24">24 h</option>
+        </select>
+      </label>
+      <span class="muted" id="availability"></span>
+    </div>
+    <canvas id="latencyChart" height="90"></canvas>
+  </section>
+
+  <section class="panel">
+    <h2>Tempo observado de autorizacao NFC-e</h2>
+    <div class="muted" id="authorizationSummary">Aguardando dados do emissor.</div>
+    <div id="authorizations" style="margin-top:12px"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Linha do tempo</h2>
+    <div class="events" id="events"><div class="muted">Sem eventos.</div></div>
+  </section>
+</main>
+
+<footer class="muted">
+  HUB Monitoramento &middot; dados coletados localmente nos caixas e enviados ao servidor da loja.
+</footer>
+
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script>
+var state = { data: null, machine: null, chart: null };
+
+function esc(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function ico(value) {
+  if (value === true) return '<span class="dot">&#128994;</span>';
+  if (value === false) return '<span class="dot">&#128308;</span>';
+  return '<span class="dot">&#9898;</span>';
+}
+function pill(status) {
+  var cls = status === 'up' ? 'up' : (status === 'down' ? 'down' : 'unknown');
+  var label = status === 'up' ? 'Normal' : (status === 'down' ? 'Indisponível' : 'Sem dados');
+  return '<span class="pill ' + cls + '">' + esc(label) + '</span>';
+}
+function ms(value) { return (value === null || value === undefined) ? '-' : esc((Math.round(Number(value) * 10) / 10) + ' ms'); }
+function clock() { document.getElementById('clock').textContent = new Date().toLocaleString('pt-BR'); }
+
+var componentLabels = {
+  gateway: 'Rede local',
+  server: 'Servidor da loja',
+  internet: 'Internet',
+  dns: 'Consulta à SEFAZ',
+  sefaz_tcp: 'Acesso à SEFAZ',
+  sefaz_tls: 'Conexão segura com a SEFAZ'
+};
+var diagnosisLabels = {
+  'OPERACIONAL': 'Tudo normal nos testes',
+  'REDE LOCAL': 'Verificar a rede local',
+  'COMUNICACAO COM SERVIDOR': 'Verificar o servidor da loja',
+  'INTERNET / OPERADORA': 'Verificar o link de internet',
+  'DNS': 'Falha na consulta de endereço da SEFAZ',
+  'CAMINHO / SEFAZ': 'Falha no caminho de conexão até a SEFAZ',
+  'TLS / CERTIFICADO REMOTO / SEFAZ': 'Falha ao estabelecer conexão segura com a SEFAZ',
+  'TEF / ADQUIRENTE / ROTA TEF': 'Verificar o TEF, a adquirente e a rota TEF',
+  'AGENTE / PDV': 'Caixa sem comunicação com o servidor da loja',
+  'INDETERMINADO': 'Ainda sem dados suficientes'
+};
+function combinedSefazStatus(machine) {
+  var checks = [machine.dns_ok, machine.sefaz_tcp_ok, machine.sefaz_tls_ok];
+  if (checks.some(function (value) { return value === false; })) return false;
+  if (checks.every(function (value) { return value === true; })) return true;
+  return null;
+}
+function diagnosisLabel(value) {
+  return diagnosisLabels[value] || value || 'Aguardando dados';
+}
+
+function renderMatrix(machines) {
+  var body = document.querySelector('#matrix tbody');
+  if (!machines.length) { body.innerHTML = '<tr><td colspan="6" class="muted">Nenhum caixa reportou ainda.</td></tr>'; return; }
+  body.innerHTML = machines.map(function (m) {
+    var sefaz = combinedSefazStatus(m);
+    return '<tr>' +
+      '<td>' + esc(m.machine_name) + '<div class="muted">' + esc(m.local_ip || '') + (m.online ? '' : ' &middot; OFFLINE') + '</div></td>' +
+      '<td>' + ico(m.gateway_ok) + '</td>' +
+      '<td>' + ico(m.server_ok) + '</td>' +
+      '<td>' + ico(m.internet_ok) + '</td>' +
+      '<td>' + ico(sefaz) + '</td>' +
+      '<td class="muted">' + esc(diagnosisLabel(m.diagnosis)) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderWans(wans, active) {
+  var box = document.getElementById('wans');
+  var activeCard = '<div class="card"><div class="name">Link em uso</div><div class="row"><span>Rota observada</span><b>' + esc(active || 'Não identificado') + '</b></div></div>';
+  if (!wans.length) {
+    box.innerHTML = '<div class="muted">A identificação individual dos links não está configurada.</div>' + activeCard;
+    return;
+  }
+  box.innerHTML = wans.map(function (w) {
+    return '<div class="card">' +
+      '<div class="name">' + esc(w.wan_name) + ' &middot; ' + esc(w.provider || '') + ' ' + (w.active_route ? '&#11088;' : '') + '</div>' +
+      '<div class="row"><span>Status</span><b>' + pill(w.status) + '</b></div>' +
+      '<div class="row"><span>Probe</span><b>' + esc(w.probe || '-') + '</b></div>' +
+      '<div class="row"><span>Latencia</span><b>' + ms(w.latency_ms) + '</b></div>' +
+    '</div>';
+  }).join('') + activeCard;
+}
+
+function renderIncidents(incidents) {
+  var box = document.getElementById('incidents');
+  if (!incidents.length) { box.innerHTML = '<div class="muted">Nenhum incidente registrado.</div>'; return; }
+  box.innerHTML = incidents.slice(0, 5).map(function (i) {
+    var open = i.open ? 'EM ACOMPANHAMENTO' : 'NORMALIZADO';
+    var label = componentLabels[i.type] || String(i.type || 'Ocorrência');
+    return '<div class="incident ' + (i.severity === 'critical' ? 'critical' : '') + '" style="margin-bottom:12px">' +
+      '<h3>' + esc(label) + ' &middot; ' + open + '</h3>' +
+      '<div class="muted">Afetados: ' + (i.affected_machines || []).map(esc).join(', ') +
+      ' &middot; inicio ' + esc(localTime(i.started_at)) +
+      (i.recovered_at ? ' &middot; duracao ' + esc(Number(i.duration_seconds || 0).toFixed(0)) + 's' : '') +
+      (Number(i.unobserved_seconds || 0) > 0 ? ' &middot; sem observacao ' + esc(Number(i.unobserved_seconds).toFixed(0)) + 's' : '') + '</div>' +
+      '<pre>' + esc(i.diagnosis || '') + '</pre>' +
+    '</div>';
+  }).join('');
+}
+
+function renderEvents(events) {
+  var box = document.getElementById('events');
+  if (!events.length) { box.innerHTML = '<div class="muted">Sem eventos.</div>'; return; }
+  box.innerHTML = events.map(function (e) {
+    var cls = e.severity === 'critical' ? 'crit' : (e.severity === 'warning' ? 'warn' : 'info');
+    return '<div><span class="t">' + esc(localTime(e.timestamp)) + '</span>' +
+           '<span class="' + cls + '">' + esc(e.machine_name || '') + '</span>' +
+           '<span>' + esc(e.message || e.component || '') + '</span></div>';
+  }).join('');
+}
+
+function renderAvailability(availability) {
+  var parts = [];
+  if (availability.sefaz_tcp_ok !== undefined) parts.push('Conexão com a SEFAZ ' + Number(availability.sefaz_tcp_ok).toFixed(2) + '%');
+  if (availability.internet_ok !== undefined) parts.push('Internet ' + Number(availability.internet_ok).toFixed(2) + '%');
+  if (availability.gateway_ok !== undefined) parts.push('Rede ' + Number(availability.gateway_ok).toFixed(2) + '%');
+  document.getElementById('availability').textContent = parts.length ? 'Disponibilidade: ' + parts.join(' | ') : '';
+}
+
+function localTime(value) {
+  if (!value) return '-';
+  var d = new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+  return d.toLocaleString('pt-BR');
+}
+
+function fillMachineSelect(machines) {
+  var select = document.getElementById('machineSelect');
+  var current = select.value;
+  select.innerHTML = machines.map(function (m) {
+    return '<option value="' + esc(m.machine_name) + '">' + esc(m.machine_name) + '</option>';
+  }).join('');
+  if (current) select.value = current;
+  if (!select.value && machines.length) select.value = machines[0].machine_name;
+  state.machine = select.value;
+}
+
+async function loadHistory() {
+  if (!state.machine) return;
+  var hours = document.getElementById('hoursSelect').value;
+  var response = await fetch('/api/v1/machines/' + encodeURIComponent(state.machine) + '/history?hours=' + hours);
+  var payload = await response.json();
+  renderAvailability(payload.availability || {});
+  renderChart(payload.measurements || []);
+  await loadAuthorizations();
+}
+
+function renderAuthorizations(payload) {
+  var summary = document.getElementById('authorizationSummary');
+  var box = document.getElementById('authorizations');
+  var stats = payload.summary || {};
+  if (!payload.available) {
+    summary.textContent = 'Medição indisponível: emissor/log ainda não configurado no caixa.';
+  } else {
+    summary.textContent = 'Emissões observadas: ' + Number(stats.count || 0) +
+      ' · p50: ' + (stats.p50_ms === null ? '-' : Math.round(stats.p50_ms) + ' ms') +
+      ' · p95: ' + (stats.p95_ms === null ? '-' : Math.round(stats.p95_ms) + ' ms') +
+      ' · acima de 5 s: ' + Number(stats.slow_count || 0);
+  }
+  var items = payload.authorizations || [];
+  if (!items.length) {
+    box.innerHTML = '<div class="muted">' + (payload.available ? 'Nenhuma emissão no período.' : 'Sem duração observada; não atribua a demora à SEFAZ.') + '</div>';
+    return;
+  }
+  var outcomeLabels = { authorized: 'Autorizada', rejected: 'Rejeitada', error: 'Erro', timeout: 'Timeout', unknown: 'Desconhecido' };
+  box.innerHTML = '<div style="overflow:auto"><table><thead><tr><th>Início</th><th>Duração</th><th>Resultado</th><th>Medição de rede</th><th>Rede próxima</th><th>Leitura</th></tr></thead><tbody>' +
+    items.map(function (item) {
+      var network = item.network || {};
+      var signals = ['gateway', 'internet', 'sefaz_tcp', 'sefaz_tls'].map(function (name) {
+        var sample = network[name] || {};
+        var label = name === 'sefaz_tcp' ? 'TCP' : (name === 'sefaz_tls' ? 'TLS' : (name === 'gateway' ? 'Gateway' : 'Internet'));
+        var stateText = sample.ok === true ? 'OK' : (sample.ok === false ? 'Falha' : '?');
+        var latency = sample.latency_ms === null || sample.latency_ms === undefined ? '' : ' (' + Math.round(Number(sample.latency_ms)) + ' ms)';
+        return label + ' ' + stateText + latency;
+      }).join(' · ');
+      return '<tr><td>' + esc(localTime(item.started_at)) + '</td>' +
+        '<td>' + esc(item.duration_ms) + ' ms</td>' +
+        '<td>' + esc(outcomeLabels[item.outcome] || 'Desconhecido') + '</td>' +
+        '<td>' + esc(localTime(item.network_measurement_at)) + '</td>' +
+        '<td>' + esc(signals) + '</td>' +
+        '<td class="muted">' + esc(item.diagnosis || 'Dados insuficientes') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+async function loadAuthorizations() {
+  if (!state.machine) return;
+  var hours = document.getElementById('hoursSelect').value;
+  var url = '/api/v1/machines/' + encodeURIComponent(state.machine) + '/sefaz-authorizations?hours=' + hours;
+  var response = await fetch(url);
+  renderAuthorizations(await response.json());
+}
+
+function renderChart(measurements) {
+  var labels = measurements.map(function (m) { return new Date(m.timestamp).toLocaleTimeString('pt-BR'); });
+  var series = [
+    ['Rede local', 'gateway_latency_ms', '#22c55e'],
+    ['Servidor', 'server_latency_ms', '#38bdf8'],
+    ['Internet', 'internet_latency_ms', '#f59e0b'],
+    ['Acesso à SEFAZ', 'sefaz_tcp_latency_ms', '#a855f7'],
+    ['Conexão segura à SEFAZ', 'sefaz_tls_latency_ms', '#ef4444']
+  ];
+  var datasets = series.map(function (s) {
+    return {
+      label: s[0],
+      data: measurements.map(function (m) { return m[s[1]]; }),
+      borderColor: s[2],
+      backgroundColor: s[2],
+      spanGaps: true,
+      tension: 0.3,
+      pointRadius: 0,
+      borderWidth: 2
+    };
+  });
+  var config = {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true,
+      animation: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: { ticks: { color: '#8b9bb4', maxTicksLimit: 10 }, grid: { color: '#24314a' } },
+        y: { ticks: { color: '#8b9bb4' }, grid: { color: '#24314a' }, title: { display: true, text: 'ms', color: '#8b9bb4' } }
+      },
+      plugins: { legend: { labels: { color: '#e6edf7', boxWidth: 12 } } }
+    }
+  };
+  if (state.chart) {
+    state.chart.data.labels = labels;
+    state.chart.data.datasets = datasets;
+    state.chart.update('none');
+    return;
+  }
+  state.chart = new Chart(document.getElementById('latencyChart'), config);
+}
+
+async function refresh() {
+  var response = await fetch('/api/v1/status');
+  var data = await response.json();
+  state.data = data;
+  renderMatrix(data.machines || []);
+  renderWans(data.wans || [], data.active_wan);
+  renderIncidents(data.incidents || []);
+  if (!state.machine) { fillMachineSelect(data.machines || []); await loadHistory(); }
+  var eventsResponse = await fetch('/api/v1/events?limit=40');
+  renderEvents(await eventsResponse.json());
+}
+
+document.getElementById('machineSelect').addEventListener('change', function (event) {
+  state.machine = event.target.value;
+  loadHistory();
+});
+document.getElementById('hoursSelect').addEventListener('change', loadHistory);
+
+clock();
+setInterval(clock, 1000);
+refresh().catch(function (err) { console.error(err); });
+setInterval(function () { refresh().catch(function () {}); }, 5000);
+setInterval(function () { loadHistory().catch(function () {}); }, 30000);
+</script>
+</body>
+</html>

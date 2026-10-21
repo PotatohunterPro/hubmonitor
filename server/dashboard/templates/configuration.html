@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<style>
+  :root { --bg:#0b1220; --panel:#131c2e; --panel2:#1a2438; --line:#24314a; --text:#e6edf7; --muted:#8b9bb4; --accent:#38bdf8; --ok:#22c55e; --fail:#ef4444; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+  header { padding:18px 24px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  h1 { font-size:20px; margin:0; }
+  main { max-width:900px; margin:0 auto; padding:24px; display:grid; gap:16px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; }
+  h2 { font-size:15px; margin:0 0 14px; }
+  p, .help { color:var(--muted); font-size:13px; line-height:1.5; }
+  .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+  label { display:grid; gap:6px; color:var(--muted); font-size:13px; }
+  input { width:100%; background:#0b1220; border:1px solid var(--line); border-radius:8px; padding:10px 11px; color:var(--text); font:inherit; }
+  input:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  .check { display:flex; align-items:center; gap:9px; margin:12px 0; }
+  .check input { width:auto; }
+  .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+  button, a.button { border:1px solid var(--line); border-radius:8px; padding:9px 13px; background:var(--panel2); color:var(--text); font:inherit; font-size:13px; cursor:pointer; text-decoration:none; }
+  button.primary { background:#075985; border-color:#0284c7; }
+  button:disabled { opacity:.6; cursor:wait; }
+  .status { min-height:20px; margin-top:12px; font-size:13px; color:var(--muted); }
+  .status.ok { color:var(--ok); } .status.error { color:#fca5a5; }
+  .top-actions { display:flex; align-items:center; gap:10px; }
+  .hidden { display:none !important; }
+  .section-separator { border:0; border-top:1px solid var(--line); margin:20px 0; }
+  @media (max-width:640px) { header { align-items:flex-start; flex-direction:column; } main { padding:14px; } .fields { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Configuração do HUB Monitor</h1><div class="help">{{ store_name }} · esta tela administra apenas esta loja</div></div>
+  <div class="top-actions"><a class="button" href="/">Voltar ao painel</a><button id="logoutButton" class="hidden" type="button">Sair</button></div>
+</header>
+<main>
+  <section class="panel hidden" id="setupPanel">
+    <h2>Primeiro acesso</h2>
+    <p>Crie uma senha administrativa. Por segurança, a primeira configuração precisa ser feita no próprio computador do servidor da loja.</p>
+    <form id="setupForm">
+      <div class="fields">
+        <label>Senha administrativa<input id="setupPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+        <label>Confirme a senha<input id="setupPasswordConfirm" type="password" minlength="12" autocomplete="new-password" required></label>
+      </div>
+      <div class="actions"><button class="primary" type="submit">Criar senha e continuar</button></div>
+      <div class="status" id="setupStatus" role="status"></div>
+    </form>
+  </section>
+
+  <section class="panel hidden" id="loginPanel">
+    <h2>Acesso administrativo</h2>
+    <p>Entre com a senha local para alterar as configurações desta loja.</p>
+    <form id="loginForm">
+      <div class="fields"><label>Senha administrativa<input id="loginPassword" type="password" autocomplete="current-password" required></label></div>
+      <div class="actions"><button class="primary" type="submit">Entrar</button></div>
+      <div class="status" id="loginStatus" role="status"></div>
+    </form>
+    <div id="setupLocalMessage" class="status error hidden">A senha ainda não foi criada. Abra esta tela no próprio computador do servidor para fazer o primeiro acesso.</div>
+  </section>
+
+  <section class="panel hidden" id="settingsPanel">
+    <h2>Loja e rede local</h2>
+    <div class="fields">
+      <label>Nome da loja<input id="storeName" maxlength="80" required></label>
+      <label>Rede autorizada (CIDR)<input id="localSubnet" placeholder="192.168.0.0/24" required></label>
+    </div>
+    <p class="help">A rede informada também atualiza a regra do Firewall do Windows para limitar o acesso à API.</p>
+
+    <hr class="section-separator">
+    <h2>Conexão dos caixas</h2>
+    <div class="fields">
+      <label>Credencial de conexão<input id="agentToken" type="password" readonly placeholder="Exibida somente quando solicitada"></label>
+      <div class="actions" style="align-items:end"><button type="button" id="showAgentTokenButton">Mostrar credencial</button><button type="button" id="copyAgentTokenButton">Copiar</button><a class="button" href="/api/v1/admin/connection-file" download>Exportar conexão (.hubconn)</a></div>
+    </div>
+    <p class="help">O arquivo <strong>.hubconn</strong> leva o endereço HTTPS, o certificado público da loja e a credencial do agente — <strong>não</strong> leva o token do Telegram nem a senha administrativa. Importe-o na janela de cada computador monitorado. Compartilhe apenas com quem está autorizado a instalar o monitor.</p>
+    <div class="status" id="agentTokenStatus" role="status"></div>
+
+    <hr class="section-separator">
+    <h2>Destino fiscal da loja</h2>
+    <div class="fields">
+      <label>UF<select id="fiscalUf"><option value="">Selecione</option></select></label>
+      <label>Documento<select id="fiscalDocument">
+        <option value="nfce">NFC-e (modelo 65)</option>
+        <option value="nfe">NF-e (modelo 55)</option>
+      </select></label>
+      <label>Endereço da SEFAZ<input id="sefazHost" placeholder="ex.: nfce.sefaz.uf.gov.br"></label>
+      <label>Porta<input id="sefazPort" type="number" min="1" max="65535" value="443"></label>
+    </div>
+    <p class="help">Informe o endereço que a loja realmente usa. O sistema não presume endereços de outras UFs: confirme com a SEFAZ ou o contador.</p>
+    <label class="check"><input id="fiscalConfirmed" type="checkbox"> Confirmei o endereço com a SEFAZ/contador</label>
+    <div class="actions"><button type="button" id="testFiscalButton">Testar destino fiscal</button><span class="help" id="fiscalSuggestion"></span></div>
+    <div class="status" id="fiscalStatus" role="status"></div>
+
+    <hr class="section-separator">
+    <h2>Alertas pelo Telegram</h2>
+    <label class="check"><input id="telegramEnabled" type="checkbox"> Ativar alertas e resumo diário</label>
+    <div class="fields">
+      <label>Token do bot<input id="telegramToken" type="password" autocomplete="new-password" placeholder="Deixe vazio para manter o token atual"></label>
+      <label>ID do grupo<input id="telegramChatId" inputmode="numeric" autocomplete="off" placeholder="Exemplo: -1001234567890"></label>
+    </div>
+    <p class="help">Use o token criado pelo BotFather. O ID numérico do bot será mostrado após o teste; para enviar mensagens, o campo necessário aqui é o ID do grupo. Adicione o bot ao grupo antes de testar.</p>
+    <div class="actions"><button type="button" id="testTelegramButton">Enviar mensagem de teste</button><span class="help" id="botIdentity"></span></div>
+    <div class="status" id="telegramStatus" role="status"></div>
+
+    <hr class="section-separator">
+    <h2>MikroTik <span class="help">(opcional, somente leitura)</span></h2>
+    <label class="check"><input id="mikrotikEnabled" type="checkbox"> Monitorar os links por este roteador</label>
+    <div class="fields">
+      <label>Endereço IPv4<input id="mikrotikHost" placeholder="192.168.0.1"></label>
+      <label>Porta da API<input id="mikrotikPort" type="number" min="1" max="65535" value="8728"></label>
+      <label>Usuário de leitura<input id="mikrotikUser" autocomplete="username"></label>
+      <label>Senha<input id="mikrotikPassword" type="password" autocomplete="new-password" placeholder="Deixe vazio para manter a senha atual"></label>
+    </div>
+    <label class="check"><input id="mikrotikSsl" type="checkbox"> Usar conexão TLS com o roteador</label>
+    <p class="help">Crie no MikroTik um usuário restrito às permissões read, api e test. Esta integração consulta dados e não altera a configuração do roteador.</p>
+    <div class="actions"><button type="button" id="testMikrotikButton">Testar MikroTik</button></div>
+    <div class="status" id="mikrotikStatus" role="status"></div>
+
+    <hr class="section-separator">
+    <div class="actions"><button class="primary" type="button" id="saveButton">Salvar e aplicar</button><a class="button" href="/">Cancelar</a></div>
+    <div class="status" id="saveStatus" role="status"></div>
+  </section>
+  <div class="status" id="pageStatus" role="status">Verificando o acesso…</div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const panels = [$("setupPanel"), $("loginPanel"), $("settingsPanel")];
+function showOnly(panel) { panels.forEach((item) => item.classList.add("hidden")); if (panel) panel.classList.remove("hidden"); }
+function status(id, message, isError) { const el = $(id); el.textContent = message || ""; el.className = "status" + (message ? (isError ? " error" : " ok") : ""); }
+async function api(path, options) {
+  const response = await fetch(path, Object.assign({ credentials: "same-origin" }, options || {}));
+  let body = {};
+  try { body = await response.json(); } catch (_) {}
+  if (!response.ok) {
+    const detail = Array.isArray(body.detail) ? body.detail.map((item) => item.msg).join(" ") : body.detail;
+    throw new Error(detail || "Não foi possível concluir a solicitação.");
+  }
+  return body;
+}
+function jsonOptions(method, data) { return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }; }
+let fiscalOptions = [];
+async function loadFiscalOptions() {
+  const data = await api("/api/v1/admin/fiscal/options");
+  fiscalOptions = data.ufs || [];
+  const select = $("fiscalUf");
+  select.innerHTML = '<option value="">Selecione</option>' + fiscalOptions.map(function (item) {
+    return '<option value="' + item.uf + '">' + item.uf + '</option>';
+  }).join("");
+}
+function fiscalSuggest() {
+  const uf = $("fiscalUf").value;
+  const documentType = $("fiscalDocument").value;
+  const entry = fiscalOptions.find(function (item) { return item.uf === uf; });
+  let suggested = null;
+  if (entry) {
+    const match = (entry.documents || []).find(function (item) { return item.value === documentType; });
+    if (match) { suggested = match.suggested_host; }
+  }
+  $("fiscalSuggestion").textContent = suggested
+    ? "Sugestão conhecida: " + suggested
+    : "Endereço não presumido para esta UF; informe o da loja.";
+  return suggested;
+}
+async function loadSettings() {
+  const data = await api("/api/v1/admin/settings");
+  $("storeName").value = data.store_name || "";
+  $("localSubnet").value = data.local_subnet || "";
+  $("telegramEnabled").checked = Boolean(data.telegram_enabled);
+  $("telegramChatId").value = data.telegram_chat_id || "";
+  $("telegramToken").placeholder = data.telegram_bot_configured ? "Token salvo; deixe vazio para manter" : "Token criado pelo BotFather";
+  $("mikrotikEnabled").checked = Boolean(data.mikrotik_enabled);
+  $("mikrotikHost").value = data.mikrotik_host || "";
+  $("mikrotikPort").value = data.mikrotik_port || 8728;
+  $("mikrotikUser").value = data.mikrotik_user || "";
+  $("mikrotikPassword").placeholder = data.mikrotik_password_configured ? "Senha salva; deixe vazio para manter" : "Usuário de leitura do roteador";
+  $("mikrotikSsl").checked = Boolean(data.mikrotik_use_ssl);
+  $("agentToken").value = "";
+  $("agentToken").type = "password";
+  if (!fiscalOptions.length) { await loadFiscalOptions(); }
+  $("fiscalUf").value = data.fiscal_uf || "";
+  $("fiscalDocument").value = data.fiscal_document || "nfce";
+  $("sefazHost").value = data.sefaz_host || "";
+  $("sefazPort").value = data.sefaz_port || 443;
+  $("fiscalConfirmed").checked = Boolean(data.fiscal_confirmed);
+  fiscalSuggest();
+  $("logoutButton").classList.remove("hidden");
+  showOnly($("settingsPanel"));
+  $("pageStatus").textContent = "";
+}
+async function ensureAgentToken() {
+  if ($("agentToken").value) return $("agentToken").value;
+  const data = await api("/api/v1/admin/agent-token");
+  $("agentToken").value = data.agent_ingest_token || "";
+  return $("agentToken").value;
+}
+async function refreshAccess() {
+  try {
+    const state = await api("/api/v1/admin/status");
+    $("pageStatus").textContent = "";
+    if (state.authenticated) { await loadSettings(); return; }
+    $("logoutButton").classList.add("hidden");
+    if (!state.configured && state.can_setup) { showOnly($("setupPanel")); return; }
+    showOnly($("loginPanel"));
+    $("setupLocalMessage").classList.toggle("hidden", state.configured || state.can_setup);
+  } catch (error) { status("pageStatus", error.message, true); }
+}
+$("setupForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const password = $("setupPassword").value;
+  if (password !== $("setupPasswordConfirm").value) { status("setupStatus", "As senhas não coincidem.", true); return; }
+  try { await api("/api/v1/admin/setup", jsonOptions("POST", { password })); await refreshAccess(); }
+  catch (error) { status("setupStatus", error.message, true); }
+});
+$("loginForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try { await api("/api/v1/admin/login", jsonOptions("POST", { password: $("loginPassword").value })); $("loginPassword").value = ""; await refreshAccess(); }
+  catch (error) { status("loginStatus", error.message, true); }
+});
+$("logoutButton").addEventListener("click", async () => {
+  try { await api("/api/v1/admin/logout", { method: "POST" }); }
+  finally {
+    $("agentToken").value = ""; $("agentToken").type = "password";
+    $("telegramToken").value = ""; $("mikrotikPassword").value = "";
+    showOnly($("loginPanel")); $("logoutButton").classList.add("hidden");
+  }
+});
+$("showAgentTokenButton").addEventListener("click", async () => {
+  try {
+    await ensureAgentToken();
+    $("agentToken").type = $("agentToken").type === "password" ? "text" : "password";
+    $("showAgentTokenButton").textContent = $("agentToken").type === "password" ? "Mostrar credencial" : "Ocultar credencial";
+    status("agentTokenStatus", "Credencial disponível somente nesta sessão administrativa.", false);
+  } catch (error) { status("agentTokenStatus", error.message, true); }
+});
+$("copyAgentTokenButton").addEventListener("click", async () => {
+  try {
+    const token = await ensureAgentToken();
+    await navigator.clipboard.writeText(token);
+    status("agentTokenStatus", "Credencial copiada para a área de transferência.", false);
+  } catch (error) { status("agentTokenStatus", error.message || "Não foi possível copiar; use Mostrar credencial.", true); }
+});
+$("testTelegramButton").addEventListener("click", async () => {
+  status("telegramStatus", "Validando o bot e enviando a mensagem…", false);
+  try {
+    const result = await api("/api/v1/admin/telegram/test", jsonOptions("POST", {
+      telegram_bot_token: $("telegramToken").value,
+      telegram_chat_id: $("telegramChatId").value
+    }));
+    $("botIdentity").textContent = "Bot validado: " + (result.bot_username ? "@" + result.bot_username : "") + " · ID " + result.bot_id;
+    status("telegramStatus", result.message, false);
+  } catch (error) { status("telegramStatus", error.message, true); }
+});
+$("testMikrotikButton").addEventListener("click", async () => {
+  status("mikrotikStatus", "Testando consultas de leitura…", false);
+  try {
+    const result = await api("/api/v1/admin/mikrotik/test", jsonOptions("POST", {
+      mikrotik_host: $("mikrotikHost").value,
+      mikrotik_port: Number($("mikrotikPort").value),
+      mikrotik_user: $("mikrotikUser").value,
+      mikrotik_password: $("mikrotikPassword").value,
+      mikrotik_use_ssl: $("mikrotikSsl").checked
+    }));
+    status("mikrotikStatus", result.message, false);
+  } catch (error) { status("mikrotikStatus", error.message, true); }
+});
+$("saveButton").addEventListener("click", async () => {
+  status("saveStatus", "Salvando e aplicando…", false);
+  try {
+    const result = await api("/api/v1/admin/settings", jsonOptions("PUT", {
+      store_name: $("storeName").value,
+      local_subnet: $("localSubnet").value,
+      telegram_enabled: $("telegramEnabled").checked,
+      telegram_bot_token: $("telegramToken").value,
+      telegram_chat_id: $("telegramChatId").value,
+      mikrotik_enabled: $("mikrotikEnabled").checked,
+      mikrotik_host: $("mikrotikHost").value,
+      mikrotik_port: Number($("mikrotikPort").value),
+      mikrotik_user: $("mikrotikUser").value,
+      mikrotik_password: $("mikrotikPassword").value,
+      mikrotik_use_ssl: $("mikrotikSsl").checked,
+      fiscal_uf: $("fiscalUf").value,
+      fiscal_document: $("fiscalDocument").value,
+      sefaz_host: $("sefazHost").value,
+      sefaz_port: Number($("sefazPort").value),
+      fiscal_confirmed: $("fiscalConfirmed").checked
+    }));
+    $("telegramToken").value = ""; $("mikrotikPassword").value = "";
+    status("saveStatus", result.message, false);
+    await loadSettings();
+  } catch (error) { status("saveStatus", error.message, true); }
+});
+$("fiscalUf").addEventListener("change", function () {
+  const suggested = fiscalSuggest();
+  if (suggested && !$("sefazHost").value.trim()) { $("sefazHost").value = suggested; }
+});
+$("fiscalDocument").addEventListener("change", fiscalSuggest);
+$("testFiscalButton").addEventListener("click", async () => {
+  status("fiscalStatus", "Testando resolução e conexão…", false);
+  try {
+    const result = await api("/api/v1/admin/fiscal/test", jsonOptions("POST", {
+      host: $("sefazHost").value,
+      port: Number($("sefazPort").value)
+    }));
+    status("fiscalStatus", result.detail, false);
+  } catch (error) { status("fiscalStatus", error.message, true); }
+});
+refreshAccess();
+</script>
+</body>
+</html>

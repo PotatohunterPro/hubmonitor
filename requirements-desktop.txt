@@ -1,0 +1,11 @@
+# Dependencias da interface grafica e da bandeja.
+# O produto roda no Windows; no macOS/Linux elas ficam de fora para nao
+# arrastar pyobjc/GTK em ambiente de desenvolvimento.
+#
+# pywebview/pystray/pythonnet/clr-loader resolvem a versao no build do
+# Windows e a versao exata fica registrada no BUILD-INFO.json (pip freeze).
+pywebview>=5.0 ; sys_platform == "win32"
+pystray>=0.19 ; sys_platform == "win32"
+pythonnet>=3.0 ; sys_platform == "win32"
+clr-loader>=0.2 ; sys_platform == "win32"
+pillow==12.3.0
