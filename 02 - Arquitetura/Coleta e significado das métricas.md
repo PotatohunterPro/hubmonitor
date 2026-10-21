@@ -1,7 +1,7 @@
 ---
 tipo: contrato-de-metricas
 status: proposta
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 tags:
   - hub-monitoramento
 ---

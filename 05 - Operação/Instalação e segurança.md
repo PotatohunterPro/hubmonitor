@@ -1,7 +1,7 @@
 ---
 tipo: operacao
 status: planejado
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 aliases:
   - Operação
   - Instalação

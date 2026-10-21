@@ -1,7 +1,7 @@
 ---
 tipo: testes
 status: nao-executado
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 aliases:
   - Aceite
   - Testes de campo

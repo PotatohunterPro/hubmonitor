@@ -1,7 +1,7 @@
 ---
 tipo: planejamento
 status: acompanhamento
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 aliases:
   - Backlog
   - Pendências
@@ -11,11 +11,11 @@ tags:
 
 # Plano e pendências
 
-## Onde paramos — 20/10/2026
+## Onde paramos — 21/10/2026
 
 O usuário confirmou o MVP HUB-only: MikroTik, estado individual das WANs, U6+ online, histórico e alertas no painel e Telegram; computadores ficam para depois. WireGuard é a modalidade prioritária sem PC. HUB e UniFi OS Server serão avaliados na mesma VPS no piloto, após preflight. U6+ já adotados migram gradualmente por cliente. Palone é candidato somente após acesso e autorização confirmados.
 
-Esta revisão atualizou somente Markdown. **Não houve implementação, implantação, migração de controller, mudança de rede, teste ou validação em cliente.** A base atual ainda tem configuração única/global de MikroTik, SQLite e nenhuma integração UniFi/multi-cliente.
+Em 21/10/2026, a vault e a base existente foram publicadas na branch `main` do GitHub (commit `033bde2`). O `.env.example` foi generalizado e arquivos locais/operacionais foram excluídos. **Não houve implementação da central, implantação, migração de controller, mudança de rede, teste ou validação em cliente.** A base atual ainda tem configuração única/global de MikroTik, SQLite e nenhuma integração UniFi/multi-cliente.
 
 **Próxima ação:** inventariar a VPS e Palone com autorização; verificar OS/recursos/portas, RouterOS/WireGuard, probes WAN e controller UniFi/backup antes de instalar ou configurar qualquer coisa. Pendências em [[03 - Planejamento/Decisões pendentes]].
 

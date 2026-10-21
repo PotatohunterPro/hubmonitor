@@ -1,7 +1,7 @@
 ---
 tipo: contexto-operacional
 status: vigente
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 aliases:
   - Contexto para assistentes
   - Contexto do projeto
@@ -42,6 +42,7 @@ Esta é a memória resumida para trabalhar no projeto. Leia [[plano]], o [[03 - 
 | Co-hospedagem | HUB e UniFi OS Server na mesma VPS para avaliar no piloto após preflight; produção não decidida. |
 | Palone, três WANs, UniFi e Notebook 1 | Os três WANs e Notebook 1 continuam exemplos; não são inventário nem valores medidos. |
 | Central implementada | Não foi implementada nesta revisão; docs descrevem o alvo. |
+| Repositório | Snapshot inicial publicado em `main` no GitHub em 21/10/2026, commit `033bde2`; contém a vault e a base existente. Arquivos locais, dados operacionais antigos e comerciais foram excluídos; publicação não significa implantação ou validação. |
 | Base de código | Arquitetura local documentada no README; conferir arquivos relevantes antes de reutilizar. |
 | Acesso atual | Leitura de `server/main.py` e `server/api/routes.py`: ingestão e administração têm controles; painel e consultas de monitoramento não exigem sessão nos handlers consultados. Não tratar como pronto para internet. |
 | Build antigo | Consulta anterior de 20/10/2026 a `dist/` encontrou pacotes-fonte, sem Setup.exe. Renovar evidência antes de informar situação atual do build. |

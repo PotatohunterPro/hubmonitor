@@ -1,7 +1,7 @@
 ---
 tipo: recomendacao-arquitetura
 status: proposta
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 aliases:
   - Hospedagem UniFi
   - UniFi na VPS

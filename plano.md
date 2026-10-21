@@ -1,7 +1,7 @@
 ---
 tipo: plano
 status: direcao-definida
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 tags:
   - hub-monitoramento
 ---
@@ -9,7 +9,7 @@ tags:
 # Plano atual — central de monitoramento na VPS
 
 > [!important] Direção definida em 20/10/2026
-> O usuário quer endpoint e dashboard na própria VPS, com visão de vários clientes. O MVP foi delimitado nesta conversa: MikroTik, estado individual das WANs, U6+ online, histórico e alertas no painel e Telegram; computadores depois. Esta atualização é **somente documentação**. A central ainda não foi implementada nem implantada.
+> O usuário quer endpoint e dashboard na própria VPS, com visão de vários clientes. O MVP foi delimitado nesta conversa: MikroTik, estado individual das WANs, U6+ online, histórico e alertas no painel e Telegram; computadores depois. A atualização funcional continua **somente documental**. A vault e a base existente foram publicadas no GitHub em 21/10/2026; a central ainda não foi implementada nem implantada.
 
 ## 1. Objetivo
 
@@ -89,7 +89,7 @@ Topologia avançada, relatórios, métricas Wi-Fi adicionais e saúde ampla de c
 
 ## 7. Estado e próximo passo
 
-O código permanece na arquitetura local anterior. Inspeção de arquivos nesta revisão identificou autenticação administrativa e de ingestão, mas consultas como `/status`, `/machines` e `/wans` sem exigência de sessão nos handlers. Isto é leitura estática, não auditoria completa nem teste executado.
+O código publicado permanece na arquitetura local anterior. Inspeção de arquivos nesta revisão identificou autenticação administrativa e de ingestão, mas consultas como `/status`, `/machines` e `/wans` sem exigência de sessão nos handlers. Isto é leitura estática, não auditoria completa nem teste executado.
 
 Próximo passo: inventariar recursos/OS/portas da VPS e levantar Palone com acesso autorizado; verificar RouterOS/WireGuard, probes WAN e controller/backup UniFi. Banco, retenção, escala e hospedagem UniFi de produção permanecem pendentes antes de qualquer implementação.
 

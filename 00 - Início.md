@@ -1,7 +1,7 @@
 ---
 tipo: indice
 status: vigente
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 aliases:
   - Início
   - Home
@@ -37,14 +37,15 @@ tags:
 | Modelos | [[90 - Modelos/Modelo de decisão]] · [[90 - Modelos/Modelo de registro]] |
 | Histórico | [[99 - Arquivo/Histórico e conteúdo superado]] |
 
-## Onde paramos — 20/10/2026
+## Onde paramos — 21/10/2026
 
 - Decisões do MVP: HUB interno; MikroTik, estado de cada WAN, U6+ online, histórico e alertas no painel e Telegram. Computadores ficam para a etapa seguinte.
 - WireGuard é a modalidade prioritária para coleta sem PC. Compatibilidade do RouterOS, rotas e sondas WAN ainda precisam de levantamento; nenhum túnel foi criado.
 - HUB e UniFi OS Server serão avaliados na mesma VPS no piloto, após preflight. A produção ainda não tem decisão de hospedagem do controller.
 - Migração gradual por cliente dos U6+ já adotados em controllers existentes. Palone é candidato condicionado a acesso e autorização confirmados; inventário ainda não validado.
-- Esta atualização é somente Markdown. A central, integração UniFi e isolamento multi-cliente não foram implementados; não houve teste nem validação em cliente.
-- Próximo passo documental: concluir preflight da VPS e inventário autorizado do piloto; o envio ao GitHub requer revisão dos artefatos locais, pois a origem indicada é pública.
+- A vault e a base de código existente foram publicadas na branch `main` do GitHub em 21/10/2026 (commit `033bde2`). A central multi-cliente, integração UniFi e isolamento ainda não foram implementados; não houve teste nem validação em cliente.
+- O push excluiu ambiente virtual, bancos, logs, builds, workspace local do Obsidian e materiais operacionais/comerciais antigos. `.env.example` foi generalizado; nenhuma API ou código de execução foi alterado.
+- Próximo passo: concluir preflight da VPS e inventário autorizado do piloto antes de instalar ou configurar componentes.
 
 ## Manutenção da memória
 

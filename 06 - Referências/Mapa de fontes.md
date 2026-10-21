@@ -1,7 +1,7 @@
 ---
 tipo: referencias
 status: vigente
-atualizado: 2026-10-20
+atualizado: 2026-10-21
 aliases:
   - Fontes
   - Referências
